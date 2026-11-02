@@ -643,11 +643,13 @@ a {
 
 .theme-light {
   --panel: #ffffff;
+  --wind-label: #15191c;
   min-height: 100vh;
   background: #f3f5f4;
 }
 .theme-dark {
   --panel: #20272a;
+  --wind-label: #edf2f2;
   min-height: 100vh;
   background: #111618;
   color: #edf2f2;
@@ -679,9 +681,37 @@ a {
   margin: 14px auto 0;
 }
 .wind-chart {
-  height: 270px;
+  height: 300px;
   margin-top: 10px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 4px;
 }
+.wind-chart-canvas {
+  height: 100%;
+}
+.wind-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  margin: 14px 0 0;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 10px;
+  color: #526066;
+}
+.wind-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.wind-legend i {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+}
+.wind-normal { background: #087e8b; }
+.wind-amber { background: #e3a008; }
+.wind-red { background: #dd3737; }
 .theme-dark .hero p,
 .theme-dark .metric small,
 .theme-dark .panel-head p,
@@ -750,6 +780,9 @@ a {
 .theme-dark .source-health small {
   color: #aab8bb;
 }
+.theme-dark .wind-legend {
+  color: #b9c5c7;
+}
 .theme-dark footer a {
   color: #6fc2ca;
 }
@@ -788,7 +821,7 @@ a {
     margin: 11px 16px 0;
   }
   .wind-chart {
-    height: 235px;
+    height: 275px;
   }
   .theme-toggle {
     min-width: auto;

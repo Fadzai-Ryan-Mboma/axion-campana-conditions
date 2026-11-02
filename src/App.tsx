@@ -699,13 +699,22 @@ export default function App() {
           </div>
           <span>{t[intervalKey[interval]]} · {horizonFor[interval]} h</span>
         </div>
+        <div className="wind-legend" aria-label={t.windTrend}>
+          <span><i className="wind-normal" /> {t.windNormal}</span>
+          <span><i className="wind-amber" /> {t.windAmber}</span>
+          <span><i className="wind-red" /> {t.windRed}</span>
+        </div>
         {windChart.length > 0 && (
           <div className="wind-chart">
-            <ResponsiveContainer>
-              <BarChart
-                data={windChart}
-                margin={{ top: 32, right: 14, left: 0, bottom: 12 }}
-              >
+            <div
+              className="wind-chart-canvas"
+              style={{ minWidth: `${Math.max(720, windChart.length * 104)}px` }}
+            >
+              <ResponsiveContainer>
+                <BarChart
+                  data={windChart}
+                  margin={{ top: 56, right: 14, left: 0, bottom: 12 }}
+                >
                 <CartesianGrid vertical={false} strokeDasharray="3 3" />
                 <XAxis dataKey="label" tickLine={false} />
                 <YAxis unit=" km/h" tickLine={false} />
@@ -715,25 +724,34 @@ export default function App() {
                     t.wind,
                   ]}
                 />
-                <Bar dataKey="windSpeed" radius={[7, 7, 0, 0]}>
+                  <Bar
+                    dataKey="windSpeed"
+                    radius={[7, 7, 0, 0]}
+                    isAnimationActive={false}
+                  >
                   <LabelList
                     dataKey="windCardinal"
                     position="top"
-                    offset={18}
+                    offset={27}
+                    fill="var(--wind-label)"
+                    style={{ fontSize: 12, fontWeight: 700 }}
                     formatter={(v) => `➤ ${String(v ?? "")}`}
                   />
                   <LabelList
                     dataKey="windSpeed"
                     position="top"
-                    offset={3}
+                    offset={7}
+                    fill="var(--wind-label)"
+                    style={{ fontSize: 15, fontWeight: 700 }}
                     formatter={(v) => `${Math.round(Number(v ?? 0))} km/h`}
                   />
-                  {windChart.map((d) => (
-                    <Cell key={d.time} fill={d.color} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+                    {windChart.map((d) => (
+                      <Cell key={d.time} fill={d.color} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         )}
       </section>
