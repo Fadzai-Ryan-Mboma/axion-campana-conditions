@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ArrowDownToLine,
   CloudRain,
@@ -28,7 +28,79 @@ import {
 } from "recharts";
 import { copy, weatherText } from "./i18n";
 import { downloadReport } from "./report";
-import type { DashboardData, Language, WeatherDay } from "./types";
+import type {
+  DashboardData,
+  Language,
+  OperationalInterval,
+  RiverPoint,
+  WeatherDay,
+} from "./types";
+
+const intervals: OperationalInterval[] = [1, 4, 8, 12, 24];
+const intervalKey: Record<OperationalInterval, "hourly" | "fourHour" | "eightHour" | "twelveHour" | "daily"> = {
+  1: "hourly",
+  4: "fourHour",
+  8: "eightHour",
+  12: "twelveHour",
+  24: "daily",
+};
+const horizonFor: Record<OperationalInterval, number> = { 1: 24, 4: 48, 8: 72, 12: 96, 24: 120 };
+const periodStart = (date: string, hours: number) => {
+  const value = new Date(date).getTime();
+  return new Date(Math.floor(value / (hours * 3_600_000)) * hours * 3_600_000).toISOString();
+};
+const cardinal = (degrees: number) =>
+  ["N", "NE", "E", "SE", "S", "SW", "W", "NW"][Math.round(degrees / 45) % 8];
+const trend = (first: number, last: number) =>
+  Math.abs(last - first) < 0.02 ? "→" : last > first ? "↑" : "↓";
+
+function aggregateRiver(points: RiverPoint[], interval: OperationalInterval) {
+  if (interval === 24) return [];
+  const groups = new Map<string, RiverPoint[]>();
+  for (const point of points) {
+    const key = periodStart(point.time, interval);
+    groups.set(key, [...(groups.get(key) ?? []), point]);
+  }
+  return [...groups.entries()].map(([time, values]) => {
+    const first = values[0], last = values.at(-1)!;
+    return {
+      time,
+      level: last.level,
+      last: last.level,
+      lower: Math.min(...values.map((value) => value.lower)),
+      upper: Math.max(...values.map((value) => value.upper)),
+      min: Math.min(...values.map((value) => value.level)),
+      max: Math.max(...values.map((value) => value.level)),
+      trend: trend(first.level, last.level),
+      observed: values.every((value) => value.observed),
+    };
+  });
+}
+
+function aggregateWeather(
+  hourly: NonNullable<DashboardData["weather"]>["hourly"],
+  interval: OperationalInterval,
+) {
+  const groups = new Map<string, typeof hourly>();
+  for (const point of hourly) {
+    const key = periodStart(point.time, interval);
+    groups.set(key, [...(groups.get(key) ?? []), point]);
+  }
+  return [...groups.entries()].map(([time, values]) => {
+    const strongest = values.reduce((winner, value) =>
+      value.windSpeed > winner.windSpeed ? value : winner,
+    );
+    return {
+      time,
+      temperature:
+        values.reduce((total, value) => total + value.temperature, 0) / values.length,
+      rainChance: Math.max(...values.map((value) => value.rainChance)),
+      windSpeed: strongest.windSpeed,
+      windDirection: strongest.windDirection,
+      windCardinal: cardinal(strongest.windDirection),
+    };
+  });
+}
 
 const weatherIcon: Record<string, string> = {
   clear: "☀",
@@ -56,8 +128,20 @@ const time = (date: string, language: Language) =>
   new Intl.DateTimeFormat(language === "es" ? "es-AR" : "en-GB", {
     hour: "2-digit",
     minute: "2-digit",
+    hourCycle: "h23",
     timeZone: "America/Argentina/Buenos_Aires",
   }).format(new Date(date));
+const axisStamp = (date: string, language: Language) =>
+  new Intl.DateTimeFormat(language === "es" ? "es-AR" : "en-GB", {
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+    timeZone: "America/Argentina/Buenos_Aires",
+  })
+    .format(new Date(date))
+    .replace(",", " ·");
 
 function Metric({
   label,
@@ -102,6 +186,22 @@ function Condition({ day, language }: { day: WeatherDay; language: Language }) {
     </div>
   );
 }
+function WeatherPeriod({
+  period,
+  language,
+}: {
+  period: { time: string; temperature: number; rainChance: number; windSpeed: number; windCardinal: string };
+  language: Language;
+}) {
+  return (
+    <div className="forecast-day period-day">
+      <b>{axisStamp(period.time, language)}</b>
+      <strong>{period.temperature.toFixed(1)}°</strong>
+      <small><CloudRain size={13} /> {period.rainChance}%</small>
+      <small><Wind size={13} /> {Math.round(period.windSpeed)} km/h {period.windCardinal}</small>
+    </div>
+  );
+}
 
 export default function App() {
   const [language, setLanguage] = useState<Language>("es"),
@@ -111,78 +211,144 @@ export default function App() {
     [data, setData] = useState<DashboardData | null>(null),
     [loading, setLoading] = useState(true),
     [refreshing, setRefreshing] = useState(false),
-    [error, setError] = useState("");
+    [error, setError] = useState(""),
+    [interval, setInterval] = useState<OperationalInterval>(() => {
+      const stored = Number(localStorage.getItem("axion-operational-interval"));
+      return intervals.includes(stored as OperationalInterval)
+        ? (stored as OperationalInterval)
+        : 4;
+    }),
+    [clock, setClock] = useState(() => Date.now());
   const t = copy[language];
-  const load = async () => {
+  const load = useCallback(async () => {
     setRefreshing(true);
     setError("");
     try {
       const res = await fetch("/api/dashboard");
       if (!res.ok) throw new Error();
-      setData(await res.json());
+      const next = (await res.json()) as DashboardData;
+      if (next.river) {
+        localStorage.setItem(
+          "axion-last-river",
+          JSON.stringify({ river: next.river, savedAt: next.generatedAt }),
+        );
+      } else {
+        const saved = localStorage.getItem("axion-last-river");
+        if (saved) {
+          const previous = JSON.parse(saved) as {
+            river: NonNullable<DashboardData["river"]>;
+          };
+          next.river = previous.river;
+          next.riverStale = true;
+        }
+      }
+      setData(next);
     } catch {
       setError(t.unavailable);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [t.unavailable]);
   useEffect(() => {
     void load();
-  }, []);
+    const tick = window.setInterval(() => setClock(Date.now()), 1_000);
+    const refresh = window.setInterval(() => {
+      if (document.visibilityState === "visible") void load();
+    }, 600_000);
+    const refreshOnReturn = () => {
+      if (document.visibilityState === "visible") void load();
+    };
+    document.addEventListener("visibilitychange", refreshOnReturn);
+    return () => {
+      window.clearInterval(tick);
+      window.clearInterval(refresh);
+      document.removeEventListener("visibilitychange", refreshOnReturn);
+    };
+  }, [load]);
+  const chooseInterval = (next: OperationalInterval) => {
+    setInterval(next);
+    localStorage.setItem("axion-operational-interval", String(next));
+  };
   const riverChart = useMemo(() => {
     const cutoff = data?.river ? new Date(data.river.updatedAt).getTime() : 0;
+    const source = data?.river
+      ? interval === 24
+        ? data.river.daily.map((day) => ({
+            time: `${day.date}T12:00:00-03:00`,
+            level: day.last,
+            lower: day.min,
+            upper: day.max,
+            observed: false,
+          }))
+        : aggregateRiver(data.river.points, interval)
+      : [];
     return (
-      data?.river?.points
-        .filter((_, i) => i % 4 === 0)
+      source
         .map((p) => ({
           ...p,
-          label: fmt(p.time, language, {
-            day: "numeric",
-            month: "short",
-            hour: "2-digit",
-          }),
+          label: axisStamp(p.time, language),
           observedLevel: new Date(p.time).getTime() <= cutoff ? p.level : null,
           forecastLevel: new Date(p.time).getTime() > cutoff ? p.level : null,
           uncertaintyUpper:
             new Date(p.time).getTime() > cutoff ? p.upper : null,
           uncertaintyLower:
             new Date(p.time).getTime() > cutoff ? p.lower : null,
-        })) ?? []
+        }))
     );
-  }, [data, language]);
+  }, [data, interval, language]);
   const weatherChart = useMemo(
-    () =>
-      data?.weather?.hourly
-        .filter((_, i) => i % 3 === 0)
+    () => {
+      const source = data?.weather
+        ? interval === 24
+          ? data.weather.daily.map((day) => ({
+              time: `${day.date}T12:00:00-03:00`,
+              temperature: (day.high + day.low) / 2,
+              rainChance: day.rainChance,
+              windSpeed: day.windSpeed,
+              windDirection: day.windDirection,
+              windCardinal: day.windCardinal,
+            }))
+          : aggregateWeather(data.weather.hourly, interval).slice(
+              0,
+              Math.ceil(horizonFor[interval] / interval),
+            )
+        : [];
+      return source
         .map((p) => ({
           ...p,
-          label: fmt(p.time, language, {
-            day: "numeric",
-            month: "short",
-            hour: "2-digit",
-          }),
-        })) ?? [],
-    [data, language],
+          label: axisStamp(p.time, language),
+        }));
+    },
+    [data, interval, language],
   );
   const windChart = useMemo(
     () =>
-      data?.weather?.daily.map((d) => ({
+      weatherChart.map((d) => ({
         ...d,
-        label: fmt(d.date, language, {
-          weekday: "short",
-          day: "numeric",
-          month: "short",
-        }),
         color:
           d.windSpeed < 20
             ? "#087E8B"
             : d.windSpeed < 25
               ? "#E3A008"
               : "#DD3737",
-      })) ?? [],
-    [data, language],
+      })),
+    [weatherChart],
   );
+  const riverRows = useMemo(() => {
+    if (!data?.river) return [];
+    if (interval === 24)
+      return data.river.daily.map((day) => ({
+        time: `${day.date}T12:00:00-03:00`,
+        min: day.min,
+        max: day.max,
+        last: day.last,
+        trend: "→",
+      }));
+    return aggregateRiver(data.river.points, interval);
+  }, [data, interval]);
+  const secondsToRefresh = Math.max(0, 600 - Math.floor((clock - new Date(data?.generatedAt ?? clock).getTime()) / 1000));
+  const countdown = `${Math.floor(secondsToRefresh / 60)}:${String(secondsToRefresh % 60).padStart(2, "0")}`;
   const peak = data?.river?.daily.reduce((a, b) => (a.max > b.max ? a : b));
   if (loading)
     return (
@@ -238,7 +404,7 @@ export default function App() {
           </button>
           <button
             className="download"
-            onClick={() => void downloadReport(language)}
+            onClick={() => void downloadReport(language, interval)}
           >
             <ArrowDownToLine size={16} />
             <span>{t.download}</span>
@@ -246,9 +412,43 @@ export default function App() {
         </div>
       </header>
       <section className="hero">
-        <p className="eyebrow">{t.site}</p>
-        <h1>{t.title}</h1>
-        <p>{t.place}</p>
+        <div className="hero-copy">
+          <p className="eyebrow">{t.site}</p>
+          <h1>{t.title}</h1>
+          <p>{t.place}</p>
+        </div>
+        <div
+          className={`source-health ${data?.notices?.length ? "degraded" : ""}`}
+        >
+          <span className="health-dot" />
+          <div>
+            <b>{data?.notices?.length ? t.sourceIssue : t.liveSources}</b>
+            <small>INA · Open-Meteo</small>
+          </div>
+        </div>
+        <div className="interval-control" aria-label={t.operationalInterval}>
+          <div className="interval-copy">
+            <b>{t.operationalInterval}</b>
+            <small>{t.intervalHint}</small>
+          </div>
+          <div className="interval-options" role="group" aria-label={t.operationalInterval}>
+            {intervals.map((option) => (
+              <button
+                type="button"
+                key={option}
+                onClick={() => chooseInterval(option)}
+                className={interval === option ? "selected" : ""}
+                aria-pressed={interval === option}
+              >
+                {t[intervalKey[option]]}
+              </button>
+            ))}
+          </div>
+        </div>
+        <p className="freshness" aria-live="polite">
+          {data && `${t.updated} ${time(data.generatedAt, language)} ART · ${t.nextRefresh} ${countdown}`}
+          <span>{t.refreshesEvery}</span>
+        </p>
       </section>
       {error && (
         <div className="notice">
@@ -262,6 +462,12 @@ export default function App() {
           {n}
         </div>
       ))}
+      {data?.riverStale && (
+        <div className="notice stale-notice">
+          <AlertTriangle size={17} />
+          {t.staleRiver} {t.updated} {time(data.river!.updatedAt, language)} ART.
+        </div>
+      )}
       <section className="metrics" aria-label="Current operational measures">
         <Metric
           label={t.currentLevel}
@@ -330,8 +536,8 @@ export default function App() {
                     <YAxis unit=" m" width={52} tickLine={false} />
                     <Tooltip
                       labelFormatter={(label) => label}
-                    formatter={(value) => [
-                      `${Number(value ?? 0).toFixed(2)} m`,
+                      formatter={(value) => [
+                        `${Number(value ?? 0).toFixed(2)} m`,
                         t.level,
                       ]}
                     />
@@ -368,24 +574,26 @@ export default function App() {
                   </ComposedChart>
                 </ResponsiveContainer>
               </div>
-              <h3>{t.dailySummary}</h3>
+              <h3>{interval === 24 ? t.dailySummary : t.operationalInterval}</h3>
               <div className="table-wrap">
                 <table>
                   <thead>
                     <tr>
-                      <th>{t.date}</th>
+                      <th>{interval === 24 ? t.date : t.period}</th>
                       <th>{t.min}</th>
                       <th>{t.max}</th>
                       <th>{t.last}</th>
+                      {interval !== 24 && <th>{t.trend}</th>}
                     </tr>
                   </thead>
                   <tbody>
-                    {data.river.daily.map((d) => (
-                      <tr key={d.date}>
-                        <td>{fmt(d.date, language)}</td>
+                    {riverRows.map((d) => (
+                      <tr key={d.time}>
+                        <td>{interval === 24 ? fmt(d.time, language) : axisStamp(d.time, language)}</td>
                         <td>{d.min.toFixed(2)} m</td>
                         <td>{d.max.toFixed(2)} m</td>
                         <td>{d.last.toFixed(2)} m</td>
+                        {interval !== 24 && <td aria-label={t.trend}>{d.trend}</td>}
                       </tr>
                     ))}
                   </tbody>
@@ -421,19 +629,23 @@ export default function App() {
           </article>
           <article className="panel forecast-panel">
             <div className="panel-head">
-              <h2>{t.forecast}</h2>
-              <span>{language === "es" ? "Clima" : "Weather"}</span>
+              <h2>{interval === 24 ? t.forecast : t.weatherPeriods}</h2>
+              <span>{interval === 24 ? (language === "es" ? "Clima" : "Weather") : t[intervalKey[interval]]}</span>
             </div>
             <div className="forecast-grid">
-              {data?.weather?.daily.map((d) => (
-                <Condition day={d} language={language} key={d.date} />
-              ))}
+              {interval === 24
+                ? data?.weather?.daily.map((d) => (
+                    <Condition day={d} language={language} key={d.date} />
+                  ))
+                : weatherChart.slice(0, 5).map((period) => (
+                    <WeatherPeriod period={period} language={language} key={period.time} />
+                  ))}
             </div>
           </article>
           <article className="panel weather-chart">
             <div className="panel-head">
               <h2>{t.tempRain}</h2>
-              <span>48 h</span>
+              <span>{t[intervalKey[interval]]} · {horizonFor[interval]} h</span>
             </div>
             <div className="legend">
               <i className="temp-line" /> {t.temperatureLine}{" "}
@@ -485,7 +697,7 @@ export default function App() {
             <h2>{t.windTrend}</h2>
             <p>{t.unitWind}</p>
           </div>
-          <span>{language === "es" ? "Próximos 5 días" : "Next 5 days"}</span>
+          <span>{t[intervalKey[interval]]} · {horizonFor[interval]} h</span>
         </div>
         {windChart.length > 0 && (
           <div className="wind-chart">
@@ -508,16 +720,16 @@ export default function App() {
                     dataKey="windCardinal"
                     position="top"
                     offset={18}
-                      formatter={(v) => `➤ ${String(v ?? '')}`}
+                    formatter={(v) => `➤ ${String(v ?? "")}`}
                   />
                   <LabelList
                     dataKey="windSpeed"
                     position="top"
                     offset={3}
-                      formatter={(v) => `${Math.round(Number(v ?? 0))} km/h`}
+                    formatter={(v) => `${Math.round(Number(v ?? 0))} km/h`}
                   />
                   {windChart.map((d) => (
-                    <Cell key={d.date} fill={d.color} />
+                    <Cell key={d.time} fill={d.color} />
                   ))}
                 </Bar>
               </BarChart>

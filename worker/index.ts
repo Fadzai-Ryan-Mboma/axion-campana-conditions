@@ -23,18 +23,34 @@ function normalizeIna(payload: { forecast_date: string; series: InaSeries[] }) {
 }
 function normalizeWeather(payload: any) {
   const d = payload.daily, current = payload.current
-  return { updatedAt: current.time, current: { temperature: current.temperature_2m, humidity: current.relative_humidity_2m, windSpeed: current.wind_speed_10m, windDirection: current.wind_direction_10m, windCardinal: direction(current.wind_direction_10m), precipitation: current.precipitation, condition: weatherLabel(current.weather_code), code: current.weather_code }, daily: d.time.map((date: string, i: number) => ({ date, high: d.temperature_2m_max[i], low: d.temperature_2m_min[i], rainChance: d.precipitation_probability_max[i], windSpeed: d.wind_speed_10m_max[i], windDirection: d.wind_direction_10m_dominant[i], windCardinal: direction(d.wind_direction_10m_dominant[i]), condition: weatherLabel(d.weather_code[i]), code: d.weather_code[i] })), hourly: payload.hourly.time.map((time: string, i: number) => ({ time, temperature: payload.hourly.temperature_2m[i], rainChance: payload.hourly.precipitation_probability[i], windSpeed: payload.hourly.wind_speed_10m[i], windDirection: payload.hourly.wind_direction_10m[i] })).slice(0, 48) }
+  return { updatedAt: current.time, current: { temperature: current.temperature_2m, humidity: current.relative_humidity_2m, windSpeed: current.wind_speed_10m, windDirection: current.wind_direction_10m, windCardinal: direction(current.wind_direction_10m), precipitation: current.precipitation, condition: weatherLabel(current.weather_code), code: current.weather_code }, daily: d.time.map((date: string, i: number) => ({ date, high: d.temperature_2m_max[i], low: d.temperature_2m_min[i], rainChance: d.precipitation_probability_max[i], windSpeed: d.wind_speed_10m_max[i], windDirection: d.wind_direction_10m_dominant[i], windCardinal: direction(d.wind_direction_10m_dominant[i]), condition: weatherLabel(d.weather_code[i]), code: d.weather_code[i] })), hourly: payload.hourly.time.map((time: string, i: number) => ({ time, temperature: payload.hourly.temperature_2m[i], rainChance: payload.hourly.precipitation_probability[i], windSpeed: payload.hourly.wind_speed_10m[i], windDirection: payload.hourly.wind_direction_10m[i] })).slice(0, 120) }
 }
 async function fetchJson(url: string) { const response = await fetch(url, { headers: { 'user-agent': 'AXION Campana Conditions/1.0' }, signal: AbortSignal.timeout(9000), cf: { cacheTtl: 600, cacheEverything: true } }); if (!response.ok) throw new Error(`Upstream ${response.status}`); return response.json() }
+const lastGoodRequest = (source: string) => new Request(`https://axion-internal.invalid/last-good/${source}`)
+async function retainLastGood(source: string, payload: unknown) {
+  await caches.default.put(lastGoodRequest(source), new Response(JSON.stringify(payload), { headers: { 'cache-control': 'max-age=3600' } }))
+}
+async function readLastGood<T>(source: string): Promise<T | null> {
+  const cached = await caches.default.match(lastGoodRequest(source))
+  return cached ? cached.json() as Promise<T> : null
+}
 
 export default { async fetch(request: Request, env: Env): Promise<Response> {
   const url = new URL(request.url)
   if (url.pathname === '/health') return new Response(JSON.stringify({ status: 'ok', timestamp: new Date().toISOString() }), { headers })
   if (url.pathname === '/api/dashboard') {
     const [ina, weather] = await Promise.allSettled([fetchJson(env.INA_URL || INA_URL), fetchJson(WEATHER_URL)])
-    const sourceStatus = { ina: ina.status === 'fulfilled' ? 'live' : 'unavailable', weather: weather.status === 'fulfilled' ? 'live' : 'unavailable' }
-    if (ina.status === 'rejected' && weather.status === 'rejected') return new Response(JSON.stringify({ error: 'Both upstream sources are unavailable', sourceStatus, generatedAt: new Date().toISOString() }), { status: 503, headers })
-    return new Response(JSON.stringify({ generatedAt: new Date().toISOString(), sourceStatus, river: ina.status === 'fulfilled' ? normalizeIna(ina.value as { forecast_date: string; series: InaSeries[] }) : null, weather: weather.status === 'fulfilled' ? normalizeWeather(weather.value) : null, notices: Object.entries(sourceStatus).filter(([, status]) => status !== 'live').map(([source]) => `${source} data is temporarily unavailable`) }), { headers })
+    if (ina.status === 'fulfilled') await retainLastGood('ina', ina.value)
+    if (weather.status === 'fulfilled') await retainLastGood('weather', weather.value)
+    const [cachedIna, cachedWeather] = await Promise.all([
+      ina.status === 'rejected' ? readLastGood<{ forecast_date: string; series: InaSeries[] }>('ina') : Promise.resolve(null),
+      weather.status === 'rejected' ? readLastGood<any>('weather') : Promise.resolve(null),
+    ])
+    const inaData = ina.status === 'fulfilled' ? ina.value as { forecast_date: string; series: InaSeries[] } : cachedIna
+    const weatherData = weather.status === 'fulfilled' ? weather.value : cachedWeather
+    const sourceStatus = { ina: ina.status === 'fulfilled' ? 'live' : cachedIna ? 'stale' : 'unavailable', weather: weather.status === 'fulfilled' ? 'live' : cachedWeather ? 'stale' : 'unavailable' }
+    if (!inaData && !weatherData) return new Response(JSON.stringify({ error: 'Both upstream sources are unavailable', sourceStatus, generatedAt: new Date().toISOString() }), { status: 503, headers })
+    return new Response(JSON.stringify({ generatedAt: new Date().toISOString(), sourceStatus, riverStale: sourceStatus.ina === 'stale', river: inaData ? normalizeIna(inaData) : null, weather: weatherData ? normalizeWeather(weatherData) : null, notices: Object.entries(sourceStatus).filter(([, status]) => status !== 'live').map(([source, status]) => `${source} data is temporarily ${status}`) }), { headers })
   }
   return env.ASSETS.fetch(request)
 }} satisfies ExportedHandler<Env>

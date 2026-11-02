@@ -43,8 +43,9 @@ Every push to `main` runs the GitHub Actions build and test gate. To enable auto
 
 - INA's source is an experimental four-day river-level forecast. The dashboard does not infer a fifth river day.
 - Open-Meteo supplies current weather and a five-day forecast for Campana.
-- The Worker uses a ten-minute cache policy and reports a source as unavailable rather than silently inventing values.
-- PDF is generated in the browser from the currently shown data and language.
+- The Worker uses a ten-minute cache policy and reports a source state clearly. It retains the last verified INA/Open-Meteo payload at the edge for one hour; a source outage therefore shows the retained data as stale rather than silently inventing values. While an open dashboard tab is visible, it refreshes at the same ten-minute cadence and refreshes again when the user returns to it.
+- The **Operational interval** lens is shared across river, weather, wind, and the river summary: 1 h, 4 h, 8 h, 12 h, or Daily. Four hours is the default and the chosen interval persists on that device. Hourly displays the next 24 hours; larger intervals expand the horizon through the available source forecasts.
+- PDF is generated in the browser from the currently shown data, language, and selected operational interval.
 
 ## Architecture
 
