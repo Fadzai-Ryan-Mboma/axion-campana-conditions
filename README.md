@@ -35,6 +35,10 @@ npm run deploy
 
 The Worker deploys the API and the built `dist/` client as a single public application. No API key is required for the public INA and Open-Meteo sources. Optionally set `INA_URL` as a Worker secret/variable to override the standard Campana source.
 
+### Continuous deployment
+
+Every push to `main` runs the GitHub Actions build and test gate. To enable automatic production deployment after that gate passes, add a repository secret named `CLOUDFLARE_API_TOKEN` with a least-privilege Cloudflare API token that can edit Workers for this account, then set the repository variable `CLOUDFLARE_DEPLOY_ENABLED` to `true`. The repository account ID variable is already configured.
+
 ## Data behavior
 
 - INA's source is an experimental four-day river-level forecast. The dashboard does not infer a fifth river day.
