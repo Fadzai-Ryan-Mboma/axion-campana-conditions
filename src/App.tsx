@@ -718,12 +718,6 @@ export default function App() {
                 <CartesianGrid vertical={false} strokeDasharray="3 3" />
                 <XAxis dataKey="label" tickLine={false} />
                 <YAxis unit=" km/h" tickLine={false} />
-                <Tooltip
-                  formatter={(value) => [
-                    `${Math.round(Number(value ?? 0))} km/h`,
-                    t.wind,
-                  ]}
-                />
                   <Bar
                     dataKey="windSpeed"
                     radius={[7, 7, 0, 0]}
