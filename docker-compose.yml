@@ -3,3 +3,5 @@ services:
     build: .
     ports:
       - "8787:8787"
+    environment:
+      API_ORIGIN: ${API_ORIGIN:-https://axion-campana-conditions.ryanmboma.workers.dev}

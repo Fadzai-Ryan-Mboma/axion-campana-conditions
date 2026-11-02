@@ -17,7 +17,7 @@ Open `http://localhost:8787`. `worker:dev` builds the React client and serves it
 docker compose up --build
 ```
 
-The health endpoint is `GET /health`.
+The container serves the production build at `http://localhost:8787`, proxies `/api/dashboard` to the deployed Cloudflare Worker, and exposes `GET /health`. Override `API_ORIGIN` when pointing a container at another Worker environment.
 
 ## Quality checks
 
