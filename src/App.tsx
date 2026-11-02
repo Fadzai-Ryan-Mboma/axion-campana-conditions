@@ -327,9 +327,9 @@ export default function App() {
       weatherChart.map((d) => ({
         ...d,
         color:
-          d.windSpeed < 20
+          Math.round(d.windSpeed) < 20
             ? "#087E8B"
-            : d.windSpeed < 25
+            : Math.round(d.windSpeed) < 25
               ? "#E3A008"
               : "#DD3737",
       })),
