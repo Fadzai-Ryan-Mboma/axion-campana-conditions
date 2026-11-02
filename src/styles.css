@@ -530,3 +530,23 @@ a {
     scroll-behavior: auto;
   }
 }
+
+.theme-light { --panel: #ffffff; min-height: 100vh; background: #f3f5f4; }
+.theme-dark { --panel: #20272a; min-height: 100vh; background: #111618; color: #edf2f2; }
+.axis-note { color: #657278; font-family: "IBM Plex Mono", monospace; font-size: 10px; margin: 13px 0 -3px; }
+.legend .observed, .legend .temp-line { height: 3px !important; background: #8997b2; border-radius: 2px; }
+.legend .temp-line { background: #dd3737; margin-left: 8px; }
+.legend .rain-band { background: #bfe3e7; border: 1px solid #1976d2; border-radius: 2px; margin-left: 8px; }
+.wind-section { max-width: 1420px; margin: 14px auto 0; }
+.wind-chart { height: 270px; margin-top: 10px; }
+.theme-dark .hero p, .theme-dark .metric small, .theme-dark .panel-head p, .theme-dark .panel-head > span, .theme-dark .forecast-day small, .theme-dark .now p, .theme-dark footer, .theme-dark .axis-note { color: #aab8bb; }
+.theme-dark .metric, .theme-dark .panel { background: #20272a; border-color: #3b474a; box-shadow: none; }
+.theme-dark th { background: #293236; color: #c5d0d1; }
+.theme-dark td, .theme-dark th { border-color: #3b474a; }
+.theme-dark .now p:last-child { border-color: #3b474a; color: #edf2f2; }
+.theme-dark .source-tag { border-color: #526063; color: #b9c5c7; }
+.theme-dark .recharts-cartesian-grid line { stroke: #3a4749; }
+.theme-dark .recharts-text { fill: #b3c1c3; }
+.theme-dark .notice { background: #342615; border-color: #7d5525; color: #ffd49d; }
+.theme-dark footer a { color: #6fc2ca; }
+@media (max-width: 680px) { .wind-section { margin: 11px 16px 0; } .wind-chart { height: 235px; } .theme-toggle { min-width: auto; } }
