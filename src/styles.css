@@ -1,0 +1,532 @@
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap");
+:root {
+  font-family: "Space Grotesk", sans-serif;
+  color: #15191c;
+  background: #f3f5f4;
+  font-synthesis: none;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  background: #f3f5f4;
+}
+button {
+  font: inherit;
+  cursor: pointer;
+}
+.loading {
+  height: 100vh;
+  background: #15191c;
+  color: #fff;
+  display: grid;
+  place-content: center;
+  text-align: center;
+  gap: 25px;
+}
+.loading img {
+  width: 190px;
+}
+.topbar {
+  background: #15191c;
+  min-height: 78px;
+  padding: 14px max(24px, calc((100vw - 1420px) / 2));
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #fff;
+  gap: 20px;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  min-width: 260px;
+}
+.brand img {
+  width: 94px;
+  height: auto;
+}
+.brand div {
+  display: grid;
+  gap: 2px;
+}
+.brand span {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.13em;
+  color: #aeb9bd;
+}
+.brand b {
+  font-size: 13px;
+  font-weight: 500;
+}
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.actions small {
+  color: #b7c2c5;
+  font-family: "IBM Plex Mono";
+  font-size: 10px;
+  margin-right: 8px;
+}
+.actions button {
+  border: 1px solid #536064;
+  background: transparent;
+  color: #fff;
+  min-height: 38px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.actions button:hover {
+  border-color: #fff;
+}
+.actions .download {
+  background: #dd3737;
+  border-color: #dd3737;
+}
+.actions .lang {
+  min-width: 57px;
+}
+.hero,
+.metrics,
+.workspace,
+footer,
+.notice {
+  max-width: 1420px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.hero {
+  padding: 32px 24px 24px;
+}
+.hero h1 {
+  font-size: clamp(34px, 5vw, 58px);
+  line-height: 0.95;
+  letter-spacing: -0.055em;
+  margin: 5px 0 9px;
+}
+.hero p {
+  margin: 0;
+  color: #657278;
+}
+.eyebrow {
+  font-family: "IBM Plex Mono";
+  color: #dd3737 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 11px;
+}
+.metrics {
+  padding: 0 24px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+.metric,
+.panel {
+  background: #fff;
+  border: 1px solid #dbe1e1;
+  border-radius: 16px;
+  box-shadow: 0 3px 8px rgba(21, 25, 28, 0.025);
+}
+.metric {
+  padding: 18px 19px;
+  min-height: 140px;
+  display: grid;
+  align-content: space-between;
+  border-top: 3px solid transparent;
+}
+.metric:first-child {
+  border-top-color: #087e8b;
+}
+.metric:nth-child(3) {
+  border-top-color: #dd3737;
+}
+.metric-top {
+  display: flex;
+  justify-content: space-between;
+  color: #657278;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.metric-top svg {
+  color: #087e8b;
+  width: 18px;
+}
+.metric strong {
+  font-size: 30px;
+  line-height: 1;
+  letter-spacing: -0.05em;
+}
+.metric small {
+  font-size: 12px;
+  color: #657278;
+}
+.metric-weather {
+  font-size: 25px;
+  line-height: 15px;
+}
+.workspace {
+  padding: 14px 24px 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(395px, 0.95fr);
+  gap: 14px;
+}
+.panel {
+  padding: 20px;
+}
+.panel-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 15px;
+}
+.panel-head h2 {
+  margin: 0;
+  font-size: 17px;
+  letter-spacing: -0.025em;
+}
+.panel-head p,
+.panel-head > span {
+  font-size: 11px;
+  color: #657278;
+  margin: 5px 0 0;
+}
+.source-tag {
+  font-family: "IBM Plex Mono";
+  font-size: 10px !important;
+  letter-spacing: 0.06em;
+  border: 1px solid #cfd6d5;
+  border-radius: 20px;
+  padding: 4px 7px !important;
+  margin: 0 !important;
+  color: #657278;
+}
+.legend {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 17px 0 3px;
+  font-size: 11px;
+  color: #657278;
+}
+.legend i {
+  width: 16px;
+  height: 8px;
+  display: inline-block;
+}
+.band {
+  background: #bfe3e7;
+  border-radius: 2px;
+}
+.line {
+  height: 3px !important;
+  background: #087e8b;
+  border-radius: 2px;
+  margin-left: 8px;
+}
+.chart {
+  height: 230px;
+  margin-top: 8px;
+}
+.river-chart {
+  height: 300px;
+}
+.recharts-cartesian-grid line {
+  stroke: #e8edec;
+}
+.recharts-text {
+  font-family: "IBM Plex Mono";
+  font-size: 10px;
+  fill: #657278;
+}
+.recharts-tooltip-wrapper {
+  font-size: 12px;
+}
+.panel h3 {
+  font-size: 13px;
+  margin: 20px 0 8px;
+}
+.table-wrap {
+  overflow: auto;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+th {
+  font-family: "IBM Plex Mono";
+  font-weight: 500;
+  text-align: right;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 10px;
+  color: #657278;
+  background: #f3f5f4;
+}
+th:first-child,
+td:first-child {
+  text-align: left;
+}
+td,
+th {
+  padding: 11px 10px;
+  border-bottom: 1px solid #e4e9e8;
+}
+td:not(:first-child) {
+  font-family: "IBM Plex Mono";
+  text-align: right;
+}
+.side-stack {
+  display: grid;
+  gap: 14px;
+}
+.now {
+  padding: 15px 0 0;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  column-gap: 15px;
+}
+.now > span {
+  font-size: 47px;
+  grid-row: span 2;
+}
+.now strong {
+  font-size: 36px;
+  letter-spacing: -0.05em;
+}
+.now p {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: #526066;
+}
+.now p:last-child {
+  grid-column: 1/-1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-top: 1px solid #e4e9e8;
+  padding-top: 12px;
+  margin-top: 14px;
+  color: #15191c;
+}
+.forecast-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  margin-top: 15px;
+}
+.forecast-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 5px;
+  padding: 0 7px;
+  border-right: 1px solid #e4e9e8;
+  min-height: 170px;
+}
+.forecast-day:last-child {
+  border: 0;
+}
+.forecast-day b {
+  font-size: 10px;
+  line-height: 1.25;
+}
+.condition-icon {
+  font-size: 25px;
+  margin-top: 4px;
+}
+.forecast-day strong {
+  font-size: 14px;
+}
+.forecast-day em {
+  font-style: normal;
+  color: #657278;
+  font-weight: 400;
+}
+.forecast-day small {
+  font-size: 10px;
+  color: #526066;
+  line-height: 1.25;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.empty {
+  margin: 55px 0;
+  color: #657278;
+  text-align: center;
+}
+.notice {
+  margin-top: 0;
+  margin-bottom: 12px;
+  background: #fff3e8;
+  border: 1px solid #ffc58e;
+  border-radius: 10px;
+  padding: 10px 15px;
+  color: #7d4518;
+  font-size: 12px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.notice + .notice {
+  margin-top: -5px;
+}
+footer {
+  padding: 30px 24px 42px;
+  font-size: 11px;
+  color: #657278;
+  display: flex;
+  justify-content: space-between;
+  gap: 30px;
+}
+footer p {
+  margin: 0;
+  max-width: 700px;
+  text-align: right;
+}
+a {
+  color: #087e8b;
+}
+.spin {
+  animation: spin 1s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (max-width: 980px) {
+  .topbar {
+    align-items: flex-start;
+  }
+  .actions {
+    flex-wrap: wrap;
+  }
+  .actions small {
+    display: none;
+  }
+  .workspace {
+    grid-template-columns: 1fr;
+  }
+  .side-stack {
+    grid-template-columns: 1fr 1fr;
+  }
+  .weather-chart {
+    grid-column: 1/-1;
+  }
+  .river-chart {
+    height: 270px;
+  }
+}
+@media (max-width: 680px) {
+  .topbar {
+    padding: 13px 16px;
+    align-items: center;
+  }
+  .brand {
+    min-width: 0;
+    gap: 10px;
+  }
+  .brand img {
+    width: 72px;
+  }
+  .brand b {
+    font-size: 10px;
+  }
+  .actions {
+    gap: 5px;
+  }
+  .actions button {
+    padding: 0 9px;
+    min-height: 34px;
+  }
+  .actions button span {
+    display: none;
+  }
+  .actions .lang {
+    min-width: auto;
+  }
+  .hero {
+    padding: 22px 16px 18px;
+  }
+  .metrics {
+    padding: 0 16px;
+    grid-template-columns: 1fr 1fr;
+    gap: 9px;
+  }
+  .metric {
+    min-height: 123px;
+    padding: 14px;
+  }
+  .metric strong {
+    font-size: 25px;
+  }
+  .workspace {
+    padding: 11px 16px 0;
+  }
+  .panel {
+    padding: 15px;
+    border-radius: 13px;
+  }
+  .river-chart {
+    height: 225px;
+  }
+  .side-stack {
+    grid-template-columns: 1fr;
+  }
+  .weather-chart {
+    grid-column: auto;
+  }
+  .forecast-grid {
+    overflow: auto;
+    grid-template-columns: repeat(5, minmax(92px, 1fr));
+    padding-bottom: 4px;
+  }
+  .forecast-panel {
+    overflow: hidden;
+  }
+  .forecast-day {
+    min-height: 156px;
+  }
+  .chart {
+    height: 205px;
+  }
+  footer {
+    padding: 24px 16px 35px;
+    display: grid;
+    gap: 12px;
+  }
+  footer p {
+    text-align: left;
+  }
+  .notice {
+    margin-left: 16px;
+    margin-right: 16px;
+  }
+  .panel-head h2 {
+    font-size: 15px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .spin {
+    animation: none;
+  }
+  * {
+    scroll-behavior: auto;
+  }
+}

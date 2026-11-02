@@ -1,0 +1,9 @@
+node_modules
+dist
+.wrangler
+.dev.vars
+coverage
+~$*
+*.docx
+*.pdf
+PERMAN · Campana — Water Levels and Climate - [worx.cassava.ai].png
