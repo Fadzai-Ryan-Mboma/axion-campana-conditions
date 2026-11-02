@@ -1,6 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "axion-campana-conditions",
+  "account_id": "e7fd4f6c9e1f04d9919a2d69723ebdab",
   "main": "worker/index.ts",
   "compatibility_date": "2026-11-02",
   "assets": { "directory": "./dist", "binding": "ASSETS", "not_found_handling": "single-page-application" }
