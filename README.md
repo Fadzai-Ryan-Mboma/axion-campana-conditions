@@ -47,3 +47,7 @@ The Worker deploys the API and the built `dist/` client as a single public appli
 `Browser → Cloudflare Worker /api/dashboard → INA + Open-Meteo`.
 
 The Worker normalizes upstream shapes and serves the Vite-built React assets. The browser creates the downloadable PDF locally, so forecast data is not sent to another reporting service.
+
+## Solution document
+
+The two-slide stakeholder solution document is available in [Figma Slides](https://www.figma.com/slides/f2sr8NVDwLaCTl1QJwzZnC).
